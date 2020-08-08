@@ -209,7 +209,7 @@ mongoose.connection.on('connected',()=>{
 
 
 var port = process.env.PORT || 3001;
-app.set('port',(process.env.PORT));
+// app.set('port',(process.env.PORT));
 http.listen(port, function () {
   console.log("listening in http://localhost:" + port);
 });
