@@ -3,6 +3,7 @@ let http = require("http").Server(app);
 let io = require("socket.io")(http);
 var mongoose = require("mongoose");
 var shortid = require('shortid');
+const { stringify } = require("querystring");
 
 
 io.on("connection", (socket) => {
@@ -21,7 +22,7 @@ io.on("connection", (socket) => {
     socket.reciever = reciever;
   });
   socket.on("set-getChat", (chatData) => {
-    //console.log('function called')
+    console.log('chatData =',chatData);
     socket.recieverForInbox = chatData[0];
     socket.sender = chatData[1];
     // console.log("reciever = ", socket.recieverForInbox);
@@ -64,45 +65,49 @@ io.on("connection", (socket) => {
       // Emit the messages
       socket.emit("inboxData", docs);
     });});
-    socket.on("set-recieverForCustomerInbox", (recieverForInbox) => {
-      socket.recieverForInbox = recieverForInbox;
-      console.log('called = ',socket.recieverForInbox);
-      Chat.find({ recieverId: socket.recieverForInbox }, function (err, docs) {
-        if (err) {
-          throw err;
-        }
-       // console.log("data", docs);
+    // socket.on("set-recieverForCustomerInbox", (recieverForInbox) => {
+    //   socket.recieverForInbox = recieverForInbox;
+    //   console.log('reciever for inbox =',socket.recieverForInbox);
+    //   Chat.find({ $or:[{recieverId: socket.recieverForInbox},{senderId:socket.recieverForInbox}]    }, function (err, docs) {
+    //     if (err) {
+    //       throw err;
+    //     }
+    //     console.log("data", docs);
   
-        // Emit the messages
-        socket.emit("customerInboxData", docs);
-      });
+    //     // Emit the messages
+    //     socket.emit("CustomerinboxData", docs);
+    //   });});
+  //   socket.on("set-recieverForCustomerInbox", (recieverForInbox) => {
+  //     socket.recieverForInbox = recieverForInbox;
+  //     console.log('called = ',socket.recieverForInbox);
+      
 
-    //   Chat
-    //     .find({reciever: socket.recieverForInbox})
-    //     .limit(100)
-    //     .toArray(function (err, res) {
-    //       if (err) {
-    //         throw err;
-    //       }
-    //       console.log('data',res);
+  //   //   Chat
+  //   //     .find({reciever: socket.recieverForInbox})
+  //   //     .limit(100)
+  //   //     .toArray(function (err, res) {
+  //   //       if (err) {
+  //   //         throw err;
+  //   //       }
+  //   //       console.log('data',res);
 
-    //       // Emit the messages
-    //       socket.emit("output", res);
-    // });
+  //   //       // Emit the messages
+  //   //       socket.emit("output", res);
+  //   // });
 
-    // socket.on("getChat", function (name) {
-    //   Chat
-    //     .find(name)
-    //     .limit(100)
-    //     .toArray(function (err, res) {
-    //       if (err) {
-    //         throw err;
-    //       }
+  //   // socket.on("getChat", function (name) {
+  //   //   Chat
+  //   //     .find(name)
+  //   //     .limit(100)
+  //   //     .toArray(function (err, res) {
+  //   //       if (err) {
+  //   //         throw err;
+  //   //       }
 
-    //       // Emit the messages
-    //       socket.emit("output", res);
-    //     });
-  });
+  //   //       // Emit the messages
+  //   //       socket.emit("output", res);
+  //   //     });
+  // });
   
   socket.on("set-status", (id) =>{ 
     console.log('function called id  = ',id);
@@ -132,6 +137,8 @@ io.on("connection", (socket) => {
       reciever: message.reciever,
       msg: message.text,
       status: message.status,
+      reciverImage_url: message.reciverImage_url,
+      senderImage_url:message.senderImage_url,
       //from: socket.nickname,
       created: new Date(),
     });
@@ -147,6 +154,8 @@ io.on("connection", (socket) => {
       reciever: message.reciever,
       msg: "" + message.text,
       status: message.status,
+      reciverImage_url: message.reciverImage_url,
+      senderImage_url:message.senderImage_url,
     });
   //  console.log("saving newMsg: " + newMsg);
     newMsg.save(function (err) {
@@ -157,33 +166,7 @@ io.on("connection", (socket) => {
     });
   });
 });
-//previous data
-//   socket.on("add-message", (message) => {
-//     io.emit("message", {
-//       text: message.text,
-//       from: socket.nickname,
-//       created: new Date(),
-//     });
-//     console.log(socket.type);
-//     console.log(socket.nickname);
-//     console.log(message);
-//     console.log(socket.reciever);
-//     var newMsg = new Chat({
-//       msg: "" + message.text,
-//       name: socket.nickname,
-//       reciever: socket.reciever,
-//       status: "unread",
-//     });
-//     console.log("saving newMsg: " + newMsg);
 
-//     newMsg.save(function (err) {
-//       console.log("saved, err = " + err);
-//       if (err) throw err;
-//       console.log("echoeing back data =" + message);
-//       io.sockets.emit("new message", message);
-//     });
-//   });
-// });
 var chatSchema = mongoose.Schema({
   msgId:String,
   senderId:String,
@@ -193,17 +176,37 @@ var chatSchema = mongoose.Schema({
   msg: String,
   status: String,
   created: { type: Date, default: Date.now },
+  reciverImage_url: String,
+  senderImage_url:String,
 });
 
 var Chat = mongoose.model("Message", chatSchema);
 
-mongoose.connect("mongodb://localhost/customerMessages", function (err) {
-  if (err) {
-    console.log(err);
-  } else {
-    console.log("Connected to mongodb!");
-  }
+
+
+const mongoCon = "mongodb+srv://asadkhan:pakistan@cluster0.updrb.gcp.mongodb.net/fyp?retryWrites=true&w=majority";
+
+
+    const connect = async function () {
+      return mongoose.connect(mongoCon, {
+        useNewUrlParser: true,
+      //  useCreateIndex: true,
+        useUnifiedTopology: true
+      });
+    };
+mongoose.connection.on('connected',()=>{
+  console.log('connected');
 });
+    (async () => {
+      try {
+        
+        const connected = await connect();
+        console.log('connected');
+      } catch (e) {
+        console.log("Error happend while connecting to the DB: ", e);
+      }
+    })();
+
 
 var port = process.env.PORT || 3001;
 
