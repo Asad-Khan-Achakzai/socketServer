@@ -3,6 +3,7 @@ let http = require("http").Server(app);
 let io = require("socket.io")(http);
 var mongoose = require("mongoose");
 var shortid = require('shortid');
+const cors = require('cors');
 const { stringify } = require("querystring");
 
 
@@ -183,7 +184,7 @@ var chatSchema = mongoose.Schema({
 var Chat = mongoose.model("Message", chatSchema);
 
 
-
+app.use(cors());
 const mongoCon = "mongodb+srv://asadkhan:pakistan@cluster0.updrb.gcp.mongodb.net/fyp?retryWrites=true&w=majority";
 
 
@@ -209,6 +210,7 @@ mongoose.connection.on('connected',()=>{
 
 
 var port = process.env.PORT || 3001;
+app.use(cors());
 // app.set('port',(process.env.PORT));
 http.listen(port, function () {
   console.log("listening in http://localhost:" + port);
