@@ -54,6 +54,20 @@ io.on("connection", (socket) => {
       }
     );
   });
+  socket.on("set-deletChat", (chatData) => {
+    console.log('chatData =',chatData);
+    socket.recieverForInbox = chatData[0];
+    socket.sender = chatData[1];
+    Chat.deleteMany({
+      $and: [
+        {  $or: [{ recieverId: socket.recieverForInbox }, { recieverId: socket.sender }]},
+        { $or: [{ senderId: socket.recieverForInbox }, { senderId : socket.sender }] }
+      ]
+    }, function (err) {
+      if(err) console.log(err);
+      console.log("Successful deletion");
+    });
+  });
   socket.on("set-recieverForInbox", (recieverForInbox) => {
     socket.recieverForInbox = recieverForInbox;
     console.log('reciever for inbox =',socket.recieverForInbox);
